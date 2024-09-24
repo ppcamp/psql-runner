@@ -31,13 +31,9 @@ export class StatusBar extends Base implements Setup {
         }
 
         if (selectedItem === createstr) {
-            //
-            vscode.window.showInformationMessage(`Creating: ${selectedItem}`);
             this.dbmanager.createConnection();
 
         } else {
-            vscode.window.showInformationMessage(`You selected: ${selectedItem}`);
-
             await this.dbmanager.connect(selectedItem);
 
             this.updateBarStatus(selectedItem);
