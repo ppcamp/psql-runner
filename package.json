@@ -9,17 +9,15 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "psql-runner.readSelectedText",
         "title": "psql: Run Selected Query"
-      },
-      {
-        "command": "psql-runner.helloWorld",
-        "title": "psql: Hello World"
       },
       {
         "command": "psql-runner.statusBarItemClicked",
@@ -40,14 +38,18 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.8",
+    "@types/node": "~20.16.6",
+    "@types/pg": "^8.11.10",
     "@types/vscode": "^1.93.0",
-    "@types/mocha": "^10.0.7",
-    "@types/node": "20.x",
-    "@typescript-eslint/eslint-plugin": "^8.3.0",
-    "@typescript-eslint/parser": "^8.3.0",
-    "eslint": "^9.9.1",
-    "typescript": "^5.5.4",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.11.1",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
   }
 }

@@ -1,16 +1,8 @@
 import * as vscode from 'vscode';
 import { Base } from './setuper';
 import re from '../utils/regex';
+import { Pool, PoolConfig, PoolOptions } from 'pg';
 
-type Connection = {
-    name: string;
-    host: string;
-    port: string;
-    database?: string;
-    username: string;
-    password: string;
-    ssl?: boolean;
-}
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';
@@ -19,8 +11,8 @@ export class DatabaseManager extends Base {
     private secrets: vscode.SecretStorage;
 
     private counter: number = 1;
-    private current: string = "";
-    private connections: Connection[] = [];
+    private current?: Pool;
+    private connections: PoolConfig[] = [];
 
     constructor(ctx: vscode.ExtensionContext,) {
         super(ctx);
@@ -66,8 +58,8 @@ export class DatabaseManager extends Base {
         const database = await Prompts.Database();
 
 
-        const username = await Prompts.User();
-        if (!username) {
+        const user = await Prompts.User();
+        if (!user) {
             return;
         }
 
@@ -85,12 +77,12 @@ export class DatabaseManager extends Base {
         const conn = {
             host,
             port,
-            username,
+            user,
             password,
             ssl,
-            name,
+            application_name: name,
             database,
-        } as Connection;
+        } satisfies PoolConfig;
 
         this.connections.push(conn);
         this.save();
@@ -105,29 +97,56 @@ export class DatabaseManager extends Base {
      * @returns
      */
     public async connect(name: string) {
-        vscode.window.showInformationMessage(`You selected: ${name}`);
-
-        const c = this.connections.find(v => v.name === name);
+        const c = this.connections.find(v => v.application_name === name);
         if (!c) {
-            vscode.window.showInformationMessage(`No such connection: ${name}`);
+            vscode.window.showErrorMessage(`No such connection: ${name}`);
             return;
         }
 
-        // TODO close the connection
+        if (this.current) {
+            try {
+                await this.current.end();
+            } catch (e) {
+                const err = e as Error;
+                vscode.window.showErrorMessage(`Error closing previous connection: ${err?.message}`);
+            }
+        }
 
-        this.current = c.name;
+        if (this.current?.options.application_name === name) {
+            vscode.window.showInformationMessage(`Disconnected`);
+            this.current = undefined;
+            return;
+        }
+
+        this.current = new Pool({
+            ...c,
+            application_name: c.application_name,
+            keepAlive: true,
+        });
+
+        const result = await this.current.query("SELECT 'PONG' as ping;");
+
+        if (result.rows.length === 0) {
+            vscode.window.showErrorMessage(`Fail to ping`);
+        } else {
+            vscode.window.showInformationMessage(`Selected: ${JSON.stringify(result.rows[0])}`);
+        }
+
+        return name;
     }
 
 
     public async remove(name: string) {
-        this.connections = this.connections.filter(v => v.name !== name);
+        this.connections = this.connections.filter(v => v.application_name !== name);
         this.save();
         vscode.window.showInformationMessage(`Removed: ${name}`);
     }
 
 
-    public get name() { return this.current.toString(); }
-    public get available() { return this.connections.map(connection => connection.name); }
+    public get name() { return this.current?.options.application_name ?? ''; }
+    public get available() {
+        return this.connections.map(connection => connection.application_name!);
+    }
 
 
     public close() {
@@ -162,7 +181,7 @@ const Prompts = {
         return input;
     },
 
-    Port: async () => {
+    Port: async (): Promise<number | null> => {
         const input = await vscode.window.showInputBox({
             prompt: 'Database port',
             placeHolder: '5432',
@@ -175,7 +194,9 @@ const Prompts = {
             value: '5432',
         });
 
-        return input;
+        if (!input) { return null; }
+
+        return parseInt(input, 10);
     },
 
     Database: async () => {

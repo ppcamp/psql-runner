@@ -6,6 +6,11 @@ import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { Setup } from './lib/setuper';
 
+let manager: DatabaseManager;
+let bar: StatusBar;
+let command: CommandPalette;
+
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -13,21 +18,17 @@ export function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "psql-runner" is now active!');
 
-    const manager = new DatabaseManager(context);
-
-    const bar = new StatusBar(context, manager);
-    const command = new CommandPalette(context, manager);
+    manager = new DatabaseManager(context);
+    bar = new StatusBar(context, manager);
+    command = new CommandPalette(context, manager);
 
     const setup: Setup[] = [bar, command];
     setup.forEach(s => s.setup());
 }
 
 
-
-
-
-
 // This method is called when your extension is deactivated
 export function deactivate() {
     console.log('Cleaning up extension');
+    manager.close();
 }

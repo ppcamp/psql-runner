@@ -14,6 +14,12 @@ export class StatusBar extends Base implements Setup {
         this.item.text = `$(database) ${msg}`;
     }
 
+    private resetStatusBar() {
+        if (!this.item) { return; }
+        this.item.text = `$(database) Not connected`;
+    }
+
+
 
     private async showItems() {
         const createstr = 'Create a new connection';
@@ -26,18 +32,18 @@ export class StatusBar extends Base implements Setup {
         });
 
         if (!selectedItem) {
-            // if (!this.dbmanager.name) {
-            //     vscode.window.showInformationMessage('No item selected.');
-            // }
             return;
         }
 
         if (selectedItem === createstr) {
             this.dbmanager.createConnection();
+            return;
+        }
 
+        const si = await this.dbmanager.connect(selectedItem);
+        if (!si) {
+            this.resetStatusBar();
         } else {
-            await this.dbmanager.connect(selectedItem);
-
             this.updateBarStatus(selectedItem);
         }
     }
@@ -53,7 +59,7 @@ export class StatusBar extends Base implements Setup {
         // Show the status bar item
         this.item.show();
 
-        this.updateBarStatus('Not connected');
+        this.resetStatusBar();
 
         // Register a command to be executed when the status bar item is clicked
         this.item.command = 'psql-runner.statusBarItemClicked';
