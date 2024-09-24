@@ -1,8 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { CommandPalette } from './lib/commands';
-import { StatusBar } from './lib/status';
+import { CommandPalette } from './lib/command-palette';
+import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { Setup } from './lib/setuper';
 
@@ -14,9 +14,9 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "psql-runner" is now active!');
 
     const manager = new DatabaseManager(context);
-    const bar = new StatusBar(context, manager);
-    const command = new CommandPalette(context);
 
+    const bar = new StatusBar(context, manager);
+    const command = new CommandPalette(context, manager);
 
     const setup: Setup[] = [bar, command];
     setup.forEach(s => s.setup());

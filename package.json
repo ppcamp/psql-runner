@@ -15,15 +15,19 @@
     "commands": [
       {
         "command": "psql-runner.readSelectedText",
-        "title": "psql: selected"
+        "title": "psql: Run Selected Query"
       },
       {
         "command": "psql-runner.helloWorld",
-        "title": "psql: hello world"
+        "title": "psql: Hello World"
       },
       {
         "command": "psql-runner.statusBarItemClicked",
-        "title": "Status Bar Item Clicked"
+        "title": "psql: Configure/Connect database"
+      },
+      {
+        "command": "psql-runner.pickAndRemoveConnections",
+        "title": "psql: Remove Connections"
       }
     ]
   },

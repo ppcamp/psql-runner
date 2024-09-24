@@ -26,7 +26,9 @@ export class StatusBar extends Base implements Setup {
         });
 
         if (!selectedItem) {
-            vscode.window.showInformationMessage('No item selected.');
+            // if (!this.dbmanager.name) {
+            //     vscode.window.showInformationMessage('No item selected.');
+            // }
             return;
         }
 
