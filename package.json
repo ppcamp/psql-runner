@@ -14,6 +14,57 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+        "activitybar": [
+            {
+                "id": "myRightBar",
+                "title": "psql-runner",
+                "icon": "resources/icon.svg"
+            }
+        ]
+    },
+    "views": {
+        "myRightBar": [
+            {
+                "id": "myRightBarView",
+                "name": "Databases"
+            },
+            {
+                "id": "myRightBarViewOutline",
+                "name": "Outline"
+            }
+        ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "workbench.explorer.emptyView",
+        "contents": "You can have paragraphs of text here. You can have [links](https://code.visualstudio.com) to external sources or [internal commands](command:welcome-view-content-sample.hello).\nUse new lines to have new paragraphs.\nPlace a link alone in a paragraph to make it a button\n[Hello](command:welcome-view-content-sample.hello)"
+      }
+    ],
+    "menus": {
+        "view/title": [
+            {
+                "command": "myRightBar.refreshEntry",
+                "when": "view == myRightBar",
+                "group": "navigation"
+            },
+            {
+                "command": "myRightBar.addEntry",
+                "when": "view == myRightBar"
+            }
+        ],
+        "view/item/context": [
+            {
+                "command": "myRightBar.editEntry",
+                "when": "view == myRightBar && viewItem == dependency",
+                "group": "inline"
+            },
+            {
+                "command": "myRightBar.deleteEntry",
+                "when": "view == myRightBar && viewItem == dependency"
+            }
+        ]
+    },
     "commands": [
       {
         "command": "psql-runner.readSelectedText",
@@ -26,6 +77,34 @@
       {
         "command": "psql-runner.pickAndRemoveConnections",
         "title": "psql: Remove Connections"
+      },
+      {
+        "command": "psql-runner.activityBar.show",
+        "title": "psql: Show bar on side"
+      },
+      {
+        "command": "myRightBar.refreshEntry",
+        "title": "Refresh",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "myRightBar.addEntry",
+        "title": "Add"
+      },
+      {
+        "command": "myRightBar.editEntry",
+        "title": "Edit",
+        "icon": {
+          "light": "resources/light/edit.svg",
+          "dark": "resources/dark/edit.svg"
+        }
+      },
+      {
+        "command": "myRightBar.deleteEntry",
+        "title": "Delete"
       }
     ]
   },

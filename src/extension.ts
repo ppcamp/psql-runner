@@ -5,6 +5,7 @@ import { CommandPalette } from './lib/command-palette';
 import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { Setup } from './lib/setuper';
+import { ActivityBarView } from './lib/activity-bar';
 
 let manager: DatabaseManager;
 let bar: StatusBar;
@@ -22,7 +23,9 @@ export function activate(context: vscode.ExtensionContext) {
     bar = new StatusBar(context, manager);
     command = new CommandPalette(context, manager);
 
-    const setup: Setup[] = [bar, command];
+    const activity = new ActivityBarView(context);
+
+    const setup: Setup[] = [bar, command, activity];
     setup.forEach(s => s.setup());
 }
 
