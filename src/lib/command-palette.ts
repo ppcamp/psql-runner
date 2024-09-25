@@ -8,12 +8,33 @@ export class CommandPalette extends Base implements Setup {
 
     constructor(ctx: vscode.ExtensionContext, db: DatabaseManager) { super(ctx); this.dbmanager = db; }
 
-    private readSelectedText() {
+    /**
+     * @todo add support to dynamic query parameters and caching
+     */
+    private async runSelectedQuery() {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             const selection = editor.selection;
             const selectedText = editor.document.getText(selection);
-            vscode.window.showInformationMessage(`Selected text`, { modal: true, detail: selectedText });
+
+            const result = await this.dbmanager.query(selectedText);
+            if (!result) {
+                return; // no active database
+            }
+            if (result.rows.length === 0) {
+                vscode.window.showInformationMessage('No data found');
+                return;
+            }
+
+            const headers = result.fields.map(field => field.name);
+            const body = result.rows.map(v => headers.map(h => v[h]).join('|'));
+            let content = '<h1>Output</h1><div>'
+                + headers.join('|') + '\n'
+                + headers.map(() => '---').join('|') + '\n'
+                + body.join('\n') + '</div>';
+            const document = await vscode.workspace.openTextDocument({ content });
+            vscode.window.showTextDocument(document,);
+            // vscode.window.showInformationMessage(`Selected text`, { modal: true, detail: selectedText });
         } else {
             vscode.window.showErrorMessage('No active editor found.');
         }
@@ -55,7 +76,7 @@ export class CommandPalette extends Base implements Setup {
     }
 
     public setup() {
-        this.register('readSelectedText', this.readSelectedText);
+        this.register('readSelectedText', this.runSelectedQuery);
         this.register('pickAndRemoveConnections', this.pickAndRemoveConnections);
     }
 }

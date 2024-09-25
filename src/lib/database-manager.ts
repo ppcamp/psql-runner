@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { Base } from './setuper';
 import re from '../utils/regex';
-import { Pool, PoolConfig, PoolOptions } from 'pg';
-
+import { Pool, PoolConfig } from 'pg';
+import { QueryBuilder } from '../utils/sql';
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';
@@ -38,6 +38,27 @@ export class DatabaseManager extends Base {
 
         const counter = await this.secrets.get(DatabaseManager.KeyCounter);
         if (counter) { this.counter = parseInt(counter, 10); }
+    }
+
+
+    public async query(sql: string, values?: any[]) {
+        if (!this.current) {
+            vscode.window.showWarningMessage('No active connections');
+            return;
+        }
+
+        try {
+            const { query, args } = new QueryBuilder(sql).bind(values);
+            const results = await this.current.query(query, args);
+            return results;
+
+        } catch (err) {
+            if (err instanceof Error) {
+                vscode.window.showErrorMessage(`Error while querying`, { modal: true, detail: JSON.stringify(err.cause) });
+            } else {
+                vscode.window.showErrorMessage(`Unknown error while querying`, { modal: true, detail: `${err}` });
+            }
+        }
     }
 
 
@@ -109,6 +130,7 @@ export class DatabaseManager extends Base {
             } catch (e) {
                 const err = e as Error;
                 vscode.window.showErrorMessage(`Error closing previous connection: ${err?.message}`);
+                return;
             }
         }
 
@@ -124,12 +146,11 @@ export class DatabaseManager extends Base {
             keepAlive: true,
         });
 
-        const result = await this.current.query("SELECT 'PONG' as ping;");
-
-        if (result.rows.length === 0) {
+        const result = await this.query("SELECT ? as ping;", ['PONG']);
+        if (result?.rows.length === 0) {
             vscode.window.showErrorMessage(`Fail to ping`);
         } else {
-            vscode.window.showInformationMessage(`Selected: ${JSON.stringify(result.rows[0])}`);
+            vscode.window.showInformationMessage(`Selected: ${JSON.stringify(result?.rows[0])}`);
         }
 
         return name;
