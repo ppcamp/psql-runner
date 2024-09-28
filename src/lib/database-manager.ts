@@ -3,6 +3,7 @@ import { Base } from './base/setuper';
 import re from '../utils/regex';
 import { Pool, PoolConfig } from 'pg';
 import { QueryParser } from '../utils/sql';
+import { stringify } from '../utils/stringfy';
 import Logger from './base/logging';
 
 export class DatabaseManager extends Base {
@@ -26,12 +27,14 @@ export class DatabaseManager extends Base {
 
 
     private save() {
+        this.log.info('[db] Saving connection information');
         const connAsString = JSON.stringify(this.connections);
         this.secrets.store(DatabaseManager.KeyConnections, connAsString);
         this.secrets.store(DatabaseManager.KeyCounter, this.counter.toString());
     }
 
     private async load() {
+        this.log.info('[db] Loading connections');
         const connAsString = await this.secrets.get(DatabaseManager.KeyConnections);
         if (connAsString) {
             this.connections = JSON.parse(connAsString);
@@ -43,7 +46,7 @@ export class DatabaseManager extends Base {
 
 
     public async query(sql: string, values?: any[]) {
-        this.log.info('[db] Running query', { sql, values });
+        this.log.info('[db] Query', { sql, values });
 
         if (!this.current) {
             vscode.window.showWarningMessage('No active connections');
@@ -52,14 +55,20 @@ export class DatabaseManager extends Base {
 
         try {
             const results = await this.current.query(sql, values);
-            this.log.debug('[db] Results', results);
+            this.log.debug('[db] Query results', results);
             return results;
-
         } catch (err) {
             if (err instanceof Error) {
-                vscode.window.showErrorMessage(`Error while querying`, { modal: true, detail: JSON.stringify(err.cause) });
+                this.log.error('[db] Query error', errorDetail(err));
+                vscode.window.showErrorMessage(`Error while querying`, {
+                    modal: true,
+                    detail: errorDetail(err),
+                });
             } else {
-                vscode.window.showErrorMessage(`Unknown error while querying`, { modal: true, detail: `${err}` });
+                this.log.error('[db] Query error', err);
+                vscode.window.showErrorMessage(`Unknown error while querying`,
+                    { modal: true, detail: stringify(err) },
+                );
             }
         }
     }
@@ -111,7 +120,7 @@ export class DatabaseManager extends Base {
         this.connections.push(conn);
         this.save();
 
-        // vscode.window.showInformationMessage(JSON.stringify(conn));
+        // vscode.window.showInformationMessage(stringfy(conn));
     }
 
     public async tryDisconnect() {
@@ -135,7 +144,7 @@ export class DatabaseManager extends Base {
     public async connect(name: string): Promise<string | null> {
         const c = this.connections.find(v => v.application_name === name);
         if (!c) {
-            vscode.window.showErrorMessage(`No such connection: ${name}`);
+            this.log.error(`Connection ${name} doesn't not exist`);
             return null;
         }
 
@@ -147,9 +156,9 @@ export class DatabaseManager extends Base {
             keepAlive: true,
         });
 
-        const result = await this.query("SELECT ? as ping;", ['PONG']);
-        if (result?.rows.length === 0) {
-            vscode.window.showErrorMessage(`Fail to ping`);
+        const result = await this.query("SELECT $1 as ping;", ['PONG']);
+        if (result?.rows.length === 0 || result?.rows[0]?.ping !== 'PONG') {
+            vscode.window.showErrorMessage(`Fail to connect.`);
             this.log.error(`[db] Failed to connect to database ${this.name}`, result);
             return null;
         }
@@ -163,6 +172,7 @@ export class DatabaseManager extends Base {
         this.connections = this.connections.filter(v => v.application_name !== name);
         this.save();
         vscode.window.showInformationMessage(`Removed: ${name}`);
+        this.log.info(`[db] Removed connection ${this.name}`);
     }
 
 
@@ -178,7 +188,6 @@ export class DatabaseManager extends Base {
         const { query, args } = QueryParser(text);
 
         this.log.debug('[db] Parsed query', { query, args });
-
 
         const result = await this.query(text);
         if (!result) {
@@ -300,3 +309,10 @@ const Prompts = {
         return input && input === 'Enable' ? true : false;
     },
 };
+
+
+function errorDetail(err: Error): string {
+    return `
+    Reason: ${err.message},
+    Stack: ${err.stack}`.trim();
+}

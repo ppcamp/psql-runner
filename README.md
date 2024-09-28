@@ -8,6 +8,9 @@ some SQL queries, and also supports visualize your database and filtering/globin
 It only supports one connection per time. Thus, if you click on the same connection
 or if you click on another connection, it'll close the current one.
 
+## Known limitations
+
+It doesn't support columns
 
 ## Sample database
 
