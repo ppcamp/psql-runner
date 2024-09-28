@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { Base } from './base/setuper';
-import re from '../utils/regex';
 import { Pool, PoolConfig, QueryResult } from 'pg';
 import { QueryParser } from '../utils/sql';
 import { stringify } from '../utils/stringfy';
 import Logger from './base/logging';
+import { tableResult } from '../view/result';
+import Prompts from '../view/prompts';
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';
@@ -188,26 +189,27 @@ export class DatabaseManager extends Base {
 
 
     public async runQuery(text: string) {
-        this.log.debug('[db] Parsing query', { text });
-
         if (!this.checkConnection()) { return null; }
 
+        this.log.debug('[db] Parsing query', { text });
         const { query, args } = QueryParser(text);
-
         this.log.debug('[db] Parsed query', { query, args });
 
         const result = await this.query(text);
-        if (!result) {
-            return; // no active database
-        }
-        if (result.rows.length === 0) {
+        if (result?.rows.length === 0) {
             vscode.window.showInformationMessage('No data found');
             return;
         }
 
-        const columns = columnsFromResult(result);
-        const rows = rowsFromResult(columns, result);
+        // if (result!.rows.length > 100) {
+        //     result!.rowCount = 100;
+        //     result!.rows = result!.rows.slice(0, 100);
+        // }
 
+        const columns = columnsFromResult(result!);
+        const rows = rowsFromResult(columns, result!);
+
+        // TODO: NEXT STEPS: use
         const panel = vscode.window.createWebviewPanel(
             'psql.results', // Identifies the type of the webview. Used internally
             'SQL Results', // Title of the panel displayed to the user
@@ -215,8 +217,7 @@ export class DatabaseManager extends Base {
             { enableScripts: true, enableForms: true } // Webview options
         );
         // Set the HTML content for the webview
-        panel.webview.html = Views.result(columns, rows);
-        this.log.info(panel.webview.html);
+        panel.webview.html = tableResult(columns, rows);
         panel.reveal();
     }
 }
@@ -228,145 +229,6 @@ function rowsFromResult(columns: string[], result: QueryResult<any>) {
 function columnsFromResult(result: QueryResult<any>) {
     return result.fields.map(field => field.name);
 }
-
-const Views = {
-    result: (columns: Array<string>, rows: Array<Array<string>>) => {
-        return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Simple HTML Table</title>
-            <style>
-                table {
-                    width: 100%;
-                    border: none;
-                    border-collapse: collapse;
-                }
-                th, td {
-                    border: 1px solid #ddd;
-                    text-align: left;
-                    padding: 8px;
-                }
-                th { background-color: #82457c; color: white; }
-            </style>
-        </head>
-        <body>
-            <h1>SQL Results</h1>
-
-            <table>
-                <thead>
-                    ${columns.map(v => `<th>${v}</th>`).join('\n')}
-                </thead>
-                <tbody>
-                    ${rows.map(v => `<tr>${v.map(v => `<td>${v}</td>`).join('\n')}</tr>`).join('\n')}
-                </tbody>
-            </table>
-        </body>
-        `.trim();
-    }
-};
-
-const Prompts = {
-    Name: async () => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Connection Name',
-            placeHolder: 'postgres',
-            ignoreFocusOut: true,
-        });
-
-        return input;
-    },
-
-    Host: async () => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Database host',
-            placeHolder: 'localhost or an IPv4 address',
-            validateInput: (value) => {
-                if (!re.Or(re.IPV4, /^[\w.]+$/).test(value)) {
-                    return 'Input must be an IPv4 address or a hostname';
-                }
-                return null; // Return null if the input is valid
-            },
-            value: 'localhost',
-            ignoreFocusOut: true,
-        });
-
-        return input;
-    },
-
-    Port: async (): Promise<number | null> => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Database port',
-            placeHolder: '5432',
-            validateInput: (value) => {
-                if (!/^[\d]+$/.test(value)) {
-                    return 'Input must be numbers only';
-                }
-                return null; // Return null if the input is valid
-            },
-            value: '5432',
-            ignoreFocusOut: true,
-        });
-
-        if (!input) { return null; }
-
-        return parseInt(input, 10);
-    },
-
-    Database: async () => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Database',
-            placeHolder: 'postgres',
-            ignoreFocusOut: true,
-        });
-
-        return input;
-    },
-
-    User: async () => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Database user',
-            placeHolder: 'postgres',
-            validateInput: (value) => {
-                if (!/^[\w]+$/.test(value)) {
-                    return 'Input must alphanumeric only';
-                }
-                return null; // Return null if the input is valid
-            },
-            value: 'postgres',
-            ignoreFocusOut: true,
-        });
-
-        return input;
-    },
-
-
-    Password: async () => {
-        const input = await vscode.window.showInputBox({
-            prompt: 'Database password',
-            placeHolder: 'postgres',
-            password: true,
-            value: 'postgres',
-            ignoreFocusOut: true,
-        });
-
-        return input;
-    },
-
-    SSL: async () => {
-        const input = await vscode.window.showQuickPick(["Disable", "Enable"], {
-            placeHolder: 'SSL',
-            canPickMany: false,
-            ignoreFocusOut: true,
-            matchOnDescription: true,
-        });
-
-        return input && input === 'Enable' ? true : false;
-    },
-};
-
 
 function errorDetail(err: Error): string {
     return `
