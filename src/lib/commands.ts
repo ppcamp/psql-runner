@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { Plugin, Base } from './base/setuper';
 import { DatabaseManager } from './database-manager';
 import Logger from './base/logging';
+import { statmentFromDocument } from '../utils/string';
 
 
 export class CommandPalette extends Base implements Plugin {
@@ -12,31 +13,21 @@ export class CommandPalette extends Base implements Plugin {
     /**
      * @todo add support to dynamic query parameters and caching
      */
-    private async runSelectedQuery() {
+    private async runQuery() {
 
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             const selection = editor.selection;
-            const text = editor.document.getText(selection);
+            let text = editor.document.getText(selection);
 
-            const result = await this.dbmanager.query(text);
-            if (!result) {
-                return; // no active database
-            }
-            if (result.rows.length === 0) {
-                vscode.window.showInformationMessage('No data found');
-                return;
+            if (!text) {
+                const start = editor.selection.active.line;
+                const maxEnd = editor.document.lineCount;
+
+                text = statmentFromDocument(editor.document, start, maxEnd);
             }
 
-            const headers = result.fields.map(field => field.name);
-            const body = result.rows.map(v => headers.map(h => v[h]).join('|'));
-            let content = '<h1>Output</h1><div>'
-                + headers.join('|') + '\n'
-                + headers.map(() => '---').join('|') + '\n'
-                + body.join('\n') + '</div>';
-            const document = await vscode.workspace.openTextDocument({ content });
-            vscode.window.showTextDocument(document,);
-            // vscode.window.showInformationMessage(`Selected text`, { modal: true, detail: selectedText });
+            await this.dbmanager.runQuery(text);
         } else {
             vscode.window.showErrorMessage('No active editor found.');
         }
@@ -78,7 +69,7 @@ export class CommandPalette extends Base implements Plugin {
     }
 
     public init() {
-        this.register('readSelectedText', this.runSelectedQuery);
+        this.register('readSelectedText', this.runQuery);
         this.register('pickAndRemoveConnections', this.pickAndRemoveConnections);
     }
 }

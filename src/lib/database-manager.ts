@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Base } from './base/setuper';
 import re from '../utils/regex';
-import { Pool, PoolConfig } from 'pg';
+import { Pool, PoolConfig, QueryResult } from 'pg';
 import { QueryParser } from '../utils/sql';
 import { stringify } from '../utils/stringfy';
 import Logger from './base/logging';
@@ -44,17 +44,21 @@ export class DatabaseManager extends Base {
         if (counter) { this.counter = parseInt(counter, 10); }
     }
 
+    private checkConnection(): boolean {
+        if (!this.current) {
+            vscode.window.showWarningMessage('No active connections');
+            return false;
+        }
+        return true;
+    }
 
     public async query(sql: string, values?: any[]) {
         this.log.info('[db] Query', { sql, values });
 
-        if (!this.current) {
-            vscode.window.showWarningMessage('No active connections');
-            return;
-        }
+        if (!this.checkConnection()) { return null; }
 
         try {
-            const results = await this.current.query(sql, values);
+            const results = await this.current!.query(sql, values);
             this.log.debug('[db] Query results', results);
             return results;
         } catch (err) {
@@ -70,6 +74,7 @@ export class DatabaseManager extends Base {
                     { modal: true, detail: stringify(err) },
                 );
             }
+            return null;
         }
     }
 
@@ -185,6 +190,8 @@ export class DatabaseManager extends Base {
     public async runQuery(text: string) {
         this.log.debug('[db] Parsing query', { text });
 
+        if (!this.checkConnection()) { return null; }
+
         const { query, args } = QueryParser(text);
 
         this.log.debug('[db] Parsed query', { query, args });
@@ -198,18 +205,68 @@ export class DatabaseManager extends Base {
             return;
         }
 
-        const headers = result.fields.map(field => field.name);
-        const body = result.rows.map(v => headers.map(h => v[h]).join('|'));
-        let content = '<h1>Output</h1><div>'
-            + headers.join('|') + '\n'
-            + headers.map(() => '---').join('|') + '\n'
-            + body.join('\n') + '</div>';
-        const document = await vscode.workspace.openTextDocument({ content });
-        vscode.window.showTextDocument(document,);
-        // vscode.window.showInformationMessage(`Selected text`, { modal: true, detail: selectedText });
+        const columns = columnsFromResult(result);
+        const rows = rowsFromResult(columns, result);
+
+        const panel = vscode.window.createWebviewPanel(
+            'psql.results', // Identifies the type of the webview. Used internally
+            'SQL Results', // Title of the panel displayed to the user
+            { viewColumn: vscode.ViewColumn.One, preserveFocus: true }, // Editor column to show the new webview panel in
+            { enableScripts: true, enableForms: true } // Webview options
+        );
+        // Set the HTML content for the webview
+        panel.webview.html = Views.result(columns, rows);
+        this.log.info(panel.webview.html);
+        panel.reveal();
     }
 }
 
+function rowsFromResult(columns: string[], result: QueryResult<any>) {
+    return result.rows.map(v => columns.map(h => `${v[h]}`));
+}
+
+function columnsFromResult(result: QueryResult<any>) {
+    return result.fields.map(field => field.name);
+}
+
+const Views = {
+    result: (columns: Array<string>, rows: Array<Array<string>>) => {
+        return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Simple HTML Table</title>
+            <style>
+                table {
+                    width: 100%;
+                    border: none;
+                    border-collapse: collapse;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    text-align: left;
+                    padding: 8px;
+                }
+                th { background-color: #82457c; color: white; }
+            </style>
+        </head>
+        <body>
+            <h1>SQL Results</h1>
+
+            <table>
+                <thead>
+                    ${columns.map(v => `<th>${v}</th>`).join('\n')}
+                </thead>
+                <tbody>
+                    ${rows.map(v => `<tr>${v.map(v => `<td>${v}</td>`).join('\n')}</tr>`).join('\n')}
+                </tbody>
+            </table>
+        </body>
+        `.trim();
+    }
+};
 
 const Prompts = {
     Name: async () => {
@@ -314,5 +371,5 @@ const Prompts = {
 function errorDetail(err: Error): string {
     return `
     Reason: ${err.message},
-    Stack: ${err.stack}`.trim();
+    Stack: ${err.stack} `.trim();
 }
