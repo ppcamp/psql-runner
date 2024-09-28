@@ -33,7 +33,8 @@ export function QueryParser(query: string): BuilderResponse {
     while (true) {
         const pos = reMatcher.exec(query);
         if (!pos) { break; }
-        sql = replaceAt(query, pos.index, pos.length, `${++index}`);
+        sql = replaceAt(query, pos.index, pos.index + pos.length, `$${++index}`);
+        params.push(pos[0]);
     }
 
     return { query: sql, args: params };

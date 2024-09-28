@@ -25,6 +25,9 @@ export class CommandPalette extends Base implements Plugin {
                 const maxEnd = editor.document.lineCount;
 
                 text = statmentFromDocument(editor.document, start, maxEnd);
+            } else {
+                // FIXME: will this corrupt data?
+                text = text.replaceAll('\n', ' ');
             }
 
             await this.dbmanager.runQuery(text);

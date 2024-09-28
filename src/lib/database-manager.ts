@@ -189,11 +189,13 @@ export class DatabaseManager extends Base {
 
 
     public async runQuery(text: string) {
-        if (!this.checkConnection()) { return null; }
-
         this.log.debug('[db] Parsing query', { text });
         const { query, args } = QueryParser(text);
         this.log.debug('[db] Parsed query', { query, args });
+
+        // TODO: create panel to insert params
+
+        if (!this.checkConnection()) { return null; }
 
         const result = await this.query(text);
         if (result?.rows.length === 0) {
