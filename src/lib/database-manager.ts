@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Base } from './base/setuper';
 import re from '../utils/regex';
 import { Pool, PoolConfig } from 'pg';
-import { QueryBuilder } from '../utils/sql';
+import { QueryParser } from '../utils/sql';
 import Logger from './base/logging';
 
 export class DatabaseManager extends Base {
@@ -51,8 +51,8 @@ export class DatabaseManager extends Base {
         }
 
         try {
-            const { query, args } = new QueryBuilder(sql).bind(values);
-            const results = await this.current.query(query, args);
+            const results = await this.current.query(sql, values);
+            this.log.debug('[db] Results', results);
             return results;
 
         } catch (err) {
@@ -114,34 +114,32 @@ export class DatabaseManager extends Base {
         // vscode.window.showInformationMessage(JSON.stringify(conn));
     }
 
-
-    /**
-     * @todo Should close at the end
-     * @param name
-     * @returns
-     */
-    public async connect(name: string) {
-        const c = this.connections.find(v => v.application_name === name);
-        if (!c) {
-            vscode.window.showErrorMessage(`No such connection: ${name}`);
-            return;
-        }
-
+    public async tryDisconnect() {
         if (this.current) {
             try {
                 await this.current.end();
+                this.current = undefined;
+                vscode.window.showInformationMessage(`Disconnected`);
             } catch (e) {
                 const err = e as Error;
                 vscode.window.showErrorMessage(`Error closing previous connection: ${err?.message}`);
                 return;
             }
         }
-
-        if (this.current?.options.application_name === name) {
-            vscode.window.showInformationMessage(`Disconnected`);
-            this.current = undefined;
-            return;
+    }
+    /**
+     * @todo Should close at the end
+     * @param name
+     * @returns
+     */
+    public async connect(name: string): Promise<string | null> {
+        const c = this.connections.find(v => v.application_name === name);
+        if (!c) {
+            vscode.window.showErrorMessage(`No such connection: ${name}`);
+            return null;
         }
+
+        await this.tryDisconnect();
 
         this.current = new Pool({
             ...c,
@@ -152,10 +150,11 @@ export class DatabaseManager extends Base {
         const result = await this.query("SELECT ? as ping;", ['PONG']);
         if (result?.rows.length === 0) {
             vscode.window.showErrorMessage(`Fail to ping`);
-        } else {
-            vscode.window.showInformationMessage(`Selected: ${JSON.stringify(result?.rows[0])}`);
+            this.log.error(`[db] Failed to connect to database ${this.name}`, result);
+            return null;
         }
 
+        this.log.debug(`[db] connected to database ${this.name}`);
         return name;
     }
 
@@ -168,13 +167,37 @@ export class DatabaseManager extends Base {
 
 
     public get name() { return this.current?.options.application_name ?? ''; }
-    public get available() {
-        return this.connections.map(connection => connection.application_name!);
-    }
+    public get available() { return this.connections.map(connection => connection.application_name!); }
+    // TODO close the current connection
+    public close() { }
 
 
-    public close() {
-        // TODO close the current connection
+    public async runQuery(text: string) {
+        this.log.debug('[db] Parsing query', { text });
+
+        const { query, args } = QueryParser(text);
+
+        this.log.debug('[db] Parsed query', { query, args });
+
+
+        const result = await this.query(text);
+        if (!result) {
+            return; // no active database
+        }
+        if (result.rows.length === 0) {
+            vscode.window.showInformationMessage('No data found');
+            return;
+        }
+
+        const headers = result.fields.map(field => field.name);
+        const body = result.rows.map(v => headers.map(h => v[h]).join('|'));
+        let content = '<h1>Output</h1><div>'
+            + headers.join('|') + '\n'
+            + headers.map(() => '---').join('|') + '\n'
+            + body.join('\n') + '</div>';
+        const document = await vscode.workspace.openTextDocument({ content });
+        vscode.window.showTextDocument(document,);
+        // vscode.window.showInformationMessage(`Selected text`, { modal: true, detail: selectedText });
     }
 }
 
@@ -184,6 +207,7 @@ const Prompts = {
         const input = await vscode.window.showInputBox({
             prompt: 'Connection Name',
             placeHolder: 'postgres',
+            ignoreFocusOut: true,
         });
 
         return input;
@@ -200,6 +224,7 @@ const Prompts = {
                 return null; // Return null if the input is valid
             },
             value: 'localhost',
+            ignoreFocusOut: true,
         });
 
         return input;
@@ -216,6 +241,7 @@ const Prompts = {
                 return null; // Return null if the input is valid
             },
             value: '5432',
+            ignoreFocusOut: true,
         });
 
         if (!input) { return null; }
@@ -227,6 +253,7 @@ const Prompts = {
         const input = await vscode.window.showInputBox({
             prompt: 'Database',
             placeHolder: 'postgres',
+            ignoreFocusOut: true,
         });
 
         return input;
@@ -243,6 +270,7 @@ const Prompts = {
                 return null; // Return null if the input is valid
             },
             value: 'postgres',
+            ignoreFocusOut: true,
         });
 
         return input;
@@ -255,6 +283,7 @@ const Prompts = {
             placeHolder: 'postgres',
             password: true,
             value: 'postgres',
+            ignoreFocusOut: true,
         });
 
         return input;

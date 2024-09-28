@@ -40,11 +40,20 @@ export class StatusBar extends Base implements Plugin {
             return;
         }
 
-        const si = await this.dbmanager.connect(selectedItem);
-        if (!si) {
+        const conn = await this.dbmanager.connect(selectedItem);
+        if (!conn) {
             this.resetStatusBar();
         } else {
             this.updateBarStatus(selectedItem);
+
+            const disconnect = vscode.window.showInformationMessage(
+                `Connected to ${conn}.`,
+                'Disconnect');
+            disconnect.then((v) => {
+                if (v === 'Disconnect') {
+                    this.dbmanager.tryDisconnect().then(() => this.resetStatusBar());
+                }
+            });
         }
     }
 
