@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { Base, Setup } from './base/setuper';
+import { Base, Plugin } from './base/setuper';
 import { NodeDependenciesProvider } from '../providers/nodejs';
 
-export class ActivityBarView extends Base implements Setup {
+export class ActivityBarView extends Base implements Plugin {
 
     public createView() {
         const panel = vscode.window.createWebviewPanel(

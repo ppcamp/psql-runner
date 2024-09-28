@@ -3,6 +3,7 @@ import { Base } from './base/setuper';
 import re from '../utils/regex';
 import { Pool, PoolConfig } from 'pg';
 import { QueryBuilder } from '../utils/sql';
+import Logger from './base/logging';
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';
@@ -14,8 +15,8 @@ export class DatabaseManager extends Base {
     private current?: Pool;
     private connections: PoolConfig[] = [];
 
-    constructor(ctx: vscode.ExtensionContext,) {
-        super(ctx);
+    constructor(ctx: vscode.ExtensionContext, log: Logger) {
+        super(ctx, log);
         // Fetch the current connection from the settings
         // const config = vscode.workspace.getConfiguration('psql-runner');
         // const conn = config.get('currentConnection') as string;
@@ -42,6 +43,8 @@ export class DatabaseManager extends Base {
 
 
     public async query(sql: string, values?: any[]) {
+        this.log.info('[db] Running query', { sql, values });
+
         if (!this.current) {
             vscode.window.showWarningMessage('No active connections');
             return;

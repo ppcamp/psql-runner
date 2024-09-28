@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { CommandPalette } from './lib/command-palette';
+import { CommandPalette } from './lib/commands';
 import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { ActivityBarView } from './lib/activity-bar';
@@ -19,10 +19,10 @@ class Extension {
 
         this.logger.info('Initializing extension');
 
-        this.manager = new DatabaseManager(ctx);
-        this.bar = new StatusBar(ctx, this.manager);
-        this.command = new CommandPalette(ctx, this.manager);
-        this.activity = new ActivityBarView(ctx);
+        this.manager = new DatabaseManager(ctx, this.logger);
+        this.bar = new StatusBar(ctx, this.logger, this.manager);
+        this.command = new CommandPalette(ctx, this.logger, this.manager);
+        this.activity = new ActivityBarView(ctx, this.logger);
 
         [this.bar, this.command, this.activity].forEach(s => s.init());
 

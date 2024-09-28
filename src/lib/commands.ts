@@ -1,23 +1,25 @@
 import * as vscode from 'vscode';
-import { Setup, Base } from './base/setuper';
+import { Plugin, Base } from './base/setuper';
 import { DatabaseManager } from './database-manager';
+import Logger from './base/logging';
 
 
-export class CommandPalette extends Base implements Setup {
+export class CommandPalette extends Base implements Plugin {
     private dbmanager: DatabaseManager;
 
-    constructor(ctx: vscode.ExtensionContext, db: DatabaseManager) { super(ctx); this.dbmanager = db; }
+    constructor(ctx: vscode.ExtensionContext, log: Logger, db: DatabaseManager) { super(ctx, log); this.dbmanager = db; }
 
     /**
      * @todo add support to dynamic query parameters and caching
      */
     private async runSelectedQuery() {
+
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             const selection = editor.selection;
-            const selectedText = editor.document.getText(selection);
+            const text = editor.document.getText(selection);
 
-            const result = await this.dbmanager.query(selectedText);
+            const result = await this.dbmanager.query(text);
             if (!result) {
                 return; // no active database
             }

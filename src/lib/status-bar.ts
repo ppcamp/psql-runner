@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
-import { Setup, Base } from './base/setuper';
+import { Plugin, Base } from './base/setuper';
 import { DatabaseManager } from './database-manager';
+import Logger from './base/logging';
 
 
-export class StatusBar extends Base implements Setup {
+export class StatusBar extends Base implements Plugin {
     private item: vscode.StatusBarItem | undefined;
     private dbmanager: DatabaseManager;
 
-    constructor(ctx: vscode.ExtensionContext, db: DatabaseManager) { super(ctx); this.dbmanager = db; }
+    constructor(ctx: vscode.ExtensionContext, log: Logger, db: DatabaseManager) { super(ctx, log); this.dbmanager = db; }
 
     private updateBarStatus(msg: string) {
         if (!this.item) { return; }
@@ -18,7 +19,6 @@ export class StatusBar extends Base implements Setup {
         if (!this.item) { return; }
         this.item.text = `$(database) Not connected`;
     }
-
 
 
     private async showItems() {

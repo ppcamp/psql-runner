@@ -1,14 +1,17 @@
 import * as vscode from 'vscode';
+import Logger from './logging';
 
-export interface Deinitializer { deinit: () => void; }
-export interface Setup extends Deinitializer { init: () => void; }
+export interface DeInitializer { deinit: () => void; }
+export interface Initializer { init: () => void; }
+export interface Plugin extends Initializer, DeInitializer { }
 
 
-export class Base implements Setup {
+export class Base implements Plugin {
     protected ctx: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
+    protected log: Logger;
 
-    constructor(ctx: vscode.ExtensionContext) { this.ctx = ctx; }
+    constructor(ctx: vscode.ExtensionContext, logger: Logger) { this.ctx = ctx; this.log = logger; }
 
     public init() { throw new Error("not implemented"); }
 

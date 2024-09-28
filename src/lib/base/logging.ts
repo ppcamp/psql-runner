@@ -1,18 +1,18 @@
 import * as vscode from 'vscode';
 import * as winston from 'winston';
 import { LogOutputChannelTransport } from 'winston-transport-vscode';
-import { Deinitializer } from './setuper';
+import { DeInitializer } from './setuper';
 
 interface ILogger {
-    info: (msg: string, ...meta: any[]) => void;
-    warn: (msg: string, ...meta: any[]) => void;
-    verbose: (msg: string, ...meta: any[]) => void;
-    error: (msg: string, ...meta: any[]) => void;
-    debug: (msg: string, ...meta: any[]) => void;
+    info: (msg: string, meta?: any[]) => void;
+    warn: (msg: string, meta?: any[]) => void;
+    verbose: (msg: string, meta?: any[]) => void;
+    error: (msg: string, meta?: any[]) => void;
+    debug: (msg: string, meta?: any[]) => void;
 };
 
 
-export default class Logger implements ILogger, Deinitializer {
+export default class Logger implements ILogger, DeInitializer {
     private logger: winston.Logger;
     private disposable: vscode.Disposable;
 
@@ -33,9 +33,9 @@ export default class Logger implements ILogger, Deinitializer {
 
     public deinit() { this.disposable.dispose(); this.logger.destroy(); }
 
-    public info(msg: string, ...meta: any[]) { this.logger.info(msg, ...meta); }
-    public warn(msg: string, ...meta: any[]) { this.logger.info(msg, ...meta); }
-    public verbose(msg: string, ...meta: any[]) { this.logger.info(msg, ...meta); }
-    public error(msg: string, ...meta: any[]) { this.logger.info(msg, ...meta); }
-    public debug(msg: string, ...meta: any[]) { this.logger.info(msg, ...meta); }
+    public info(msg: string, meta?: any) { this.logger.info(msg, meta); }
+    public warn(msg: string, meta?: any) { this.logger.warn(msg, meta); }
+    public verbose(msg: string, meta?: any) { this.logger.verbose(msg, meta); }
+    public error(msg: string, meta?: any) { this.logger.error(msg, meta); }
+    public debug(msg: string, meta?: any) { this.logger.debug(msg, meta); }
 }
