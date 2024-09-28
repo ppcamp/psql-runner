@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Base, Setup } from './setuper';
+import { Base, Setup } from './base/setuper';
 import { NodeDependenciesProvider } from '../providers/nodejs';
 
 export class ActivityBarView extends Base implements Setup {
@@ -29,7 +29,7 @@ export class ActivityBarView extends Base implements Setup {
         </html>`;
     }
 
-    public setup() {
+    public init() {
         const rootPath =
             vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
                 ? vscode.workspace.workspaceFolders[0].uri.fsPath

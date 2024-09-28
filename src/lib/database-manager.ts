@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Base } from './setuper';
+import { Base } from './base/setuper';
 import re from '../utils/regex';
 import { Pool, PoolConfig } from 'pg';
 import { QueryBuilder } from '../utils/sql';

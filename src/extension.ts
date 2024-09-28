@@ -4,34 +4,48 @@ import * as vscode from 'vscode';
 import { CommandPalette } from './lib/command-palette';
 import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
-import { Setup } from './lib/setuper';
 import { ActivityBarView } from './lib/activity-bar';
+import Logger from './lib/base/logging';
 
-let manager: DatabaseManager;
-let bar: StatusBar;
-let command: CommandPalette;
+class Extension {
+    private manager?: DatabaseManager;
+    private bar?: StatusBar;
+    private command?: CommandPalette;
+    private activity?: ActivityBarView;
+    private logger!: Logger;
 
+    public init(ctx: vscode.ExtensionContext) {
+        this.logger = new Logger(ctx);
+
+        this.logger.info('Initializing extension');
+
+        this.manager = new DatabaseManager(ctx);
+        this.bar = new StatusBar(ctx, this.manager);
+        this.command = new CommandPalette(ctx, this.manager);
+        this.activity = new ActivityBarView(ctx);
+
+        [this.bar, this.command, this.activity].forEach(s => s.init());
+
+        console.info('Activated psql-runner');
+    }
+
+
+    public destroy() {
+        this.logger.info('Deactivating extension');
+        [this.bar, this.command, this.activity, this.logger].forEach(s => s?.deinit());
+        console.info('Deactivated psql-runner');
+    }
+}
+
+
+
+
+
+const extension = new Extension();
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "psql-runner" is now active!');
-
-    manager = new DatabaseManager(context);
-    bar = new StatusBar(context, manager);
-    command = new CommandPalette(context, manager);
-
-    const activity = new ActivityBarView(context);
-
-    const setup: Setup[] = [bar, command, activity];
-    setup.forEach(s => s.setup());
-}
-
-
+// This line of code will only be executed once when your extension is activated
+export function activate(context: vscode.ExtensionContext) { extension.init(context); }
 // This method is called when your extension is deactivated
-export function deactivate() {
-    console.log('Cleaning up extension');
-    manager.close();
-}
+export function deactivate() { extension.destroy(); }

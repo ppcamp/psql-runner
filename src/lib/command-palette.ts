@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Setup, Base } from './setuper';
+import { Setup, Base } from './base/setuper';
 import { DatabaseManager } from './database-manager';
 
 
@@ -75,7 +75,7 @@ export class CommandPalette extends Base implements Setup {
         }
     }
 
-    public setup() {
+    public init() {
         this.register('readSelectedText', this.runSelectedQuery);
         this.register('pickAndRemoveConnections', this.pickAndRemoveConnections);
     }

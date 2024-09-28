@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Setup, Base } from './setuper';
+import { Setup, Base } from './base/setuper';
 import { DatabaseManager } from './database-manager';
 
 
@@ -49,7 +49,7 @@ export class StatusBar extends Base implements Setup {
     }
 
 
-    public setup() {
+    public init() {
         // Create a status bar item
         this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
 
