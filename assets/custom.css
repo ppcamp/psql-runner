@@ -1,0 +1,63 @@
+table {
+    width: 100%;
+    border: none;
+    border-collapse: collapse;
+}
+td {
+    border: 1px solid #707070;
+    text-align: left;
+    padding: 10px;
+}
+th { background-color: #82457c; color: white; }
+
+tbody tr:first-child td {
+    background-color: rgba(256,256,256,0); /* Zebra striping for even rows */
+    padding: 0px;
+    border: none;
+    padding-block: 10px;
+    padding-inline: 2px;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: rgba(256,256,256,0); /* Zebra striping for even rows */
+}
+tbody tr:nth-child(even) {
+    background-color: rgba(256,256,256,.2); /* Zebra striping for odd rows */
+}
+
+.flex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+html {
+	box-sizing: border-box;
+	font-size: 13px;
+}
+
+*,
+*:before,
+*:after {
+	box-sizing: inherit;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ol,
+ul {
+	margin: 0;
+	padding: 0;
+	font-weight: normal;
+}
+
+img {
+	max-width: 100%;
+	height: auto;
+}

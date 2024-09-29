@@ -74,7 +74,6 @@ export const User = async () => {
     return input;
 };
 
-
 export const Password = async () => {
     const input = await vscode.window.showInputBox({
         prompt: 'Database password',
@@ -97,8 +96,6 @@ export const SSL = async () => {
 
     return input && input === 'Enable' ? true : false;
 };
-
-
 
 export default {
     Name,

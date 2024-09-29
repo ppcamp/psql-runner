@@ -5,7 +5,7 @@ import { QueryParser } from '../utils/sql';
 import { stringify } from '../utils/stringfy';
 import Logger from './base/logging';
 import Prompts from '../views/prompts';
-import { ResultPanel } from '../views/resultpanel';
+import { ResultPanel } from '../views/result-panel';
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';

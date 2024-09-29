@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import path, { relative } from 'path';
+import path from 'path';
 
 type HTMLSlot = string;
 
 export class BaseResultPanel {
-    protected _panel: vscode.WebviewPanel | null;
+    protected _panel: vscode.WebviewPanel | null = null;
     protected uri: vscode.Uri;
-    protected assets = 'resources' as const;
+    protected assets = 'assets' as const;
     protected ctx: vscode.ExtensionContext;
     protected disposables: vscode.Disposable[] = [];
     private title: string;
@@ -17,7 +17,6 @@ export class BaseResultPanel {
         this.title = title;
         this.uri = ctx.extensionUri;
         this.ctx = ctx;
-        this._panel = this.panel;
     }
 
     protected get panel() {
@@ -64,11 +63,19 @@ export class BaseResultPanel {
         this._panel = null;
     }
 
-    protected render(slot: string): HTMLSlot {
+    private urlUri(file: string) {
+        return this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.uri, this.assets, file));
+    }
+
+    protected get mainScript() { return this.urlUri('main.js'); }
+    protected get customCSS() { return this.urlUri('custom.css'); }
+    protected get mainCSS() { return this.urlUri('vscode.css'); }
+
+    protected render(slot: string, onLoadScript?: string): HTMLSlot {
         const panel = this.panel;
-        const mainScript = panel.webview.asWebviewUri(vscode.Uri.joinPath(this.uri, this.assets, 'main.js'));
-        const customCSS = panel.webview.asWebviewUri(vscode.Uri.joinPath(this.uri, this.assets, 'custom.css'));
-        const mainCSS = panel.webview.asWebviewUri(vscode.Uri.joinPath(this.uri, this.assets, 'vscode.css'));
+        const mainScript = this.mainScript;
+        const customCSS = this.customCSS;
+        const mainCSS = this.mainCSS;
         const cspSrc = panel.webview.cspSource;
         const nonce = this.nonce;
 
@@ -91,6 +98,10 @@ export class BaseResultPanel {
             <body>
                 ${slot}
                 <script nonce="${nonce}" src="${mainScript}"></script>
+                <script nonce="${nonce}">
+                    console.log("here");
+                    ${onLoadScript ? `window.addEventListener('load', function() {${onLoadScript}});` : ''}
+                </script>
             </body>`.trim() as HTMLSlot;
     }
 
@@ -106,6 +117,9 @@ export class BaseResultPanel {
     protected get nonce() { return getNonce(); }
 }
 
+/**
+ * @returns Gets a single unique identifier for the script that can be runned
+ */
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

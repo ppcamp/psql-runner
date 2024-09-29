@@ -8,3 +8,5 @@ type VSCode = {
     getState(): any;
     setState(state: any): void;
 };
+
+declare var vscode: VSCode;

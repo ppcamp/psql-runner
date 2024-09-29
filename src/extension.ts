@@ -6,7 +6,7 @@ import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { ActivityBarView } from './lib/activity-bar';
 import Logger from './lib/base/logging';
-import { ResultPanel } from './views/resultpanel';
+import { ResultPanel } from './views/result-panel';
 
 class Extension {
     private manager?: DatabaseManager;
