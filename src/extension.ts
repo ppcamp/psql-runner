@@ -6,6 +6,7 @@ import { StatusBar } from './lib/status-bar';
 import { DatabaseManager } from './lib/database-manager';
 import { ActivityBarView } from './lib/activity-bar';
 import Logger from './lib/base/logging';
+import { ResultPanel } from './views/resultpanel';
 
 class Extension {
     private manager?: DatabaseManager;
@@ -13,13 +14,15 @@ class Extension {
     private command?: CommandPalette;
     private activity?: ActivityBarView;
     private logger!: Logger;
+    private panel?: ResultPanel;
 
     public init(ctx: vscode.ExtensionContext) {
         this.logger = new Logger(ctx);
 
         this.logger.info('Initializing extension');
 
-        this.manager = new DatabaseManager(ctx, this.logger);
+        this.panel = new ResultPanel(ctx);
+        this.manager = new DatabaseManager(ctx, this.logger, this.panel);
         this.bar = new StatusBar(ctx, this.logger, this.manager);
         this.command = new CommandPalette(ctx, this.logger, this.manager);
         this.activity = new ActivityBarView(ctx, this.logger);
@@ -29,17 +32,12 @@ class Extension {
         console.info('Activated psql-runner');
     }
 
-
     public destroy() {
         this.logger.info('Deactivating extension');
-        [this.bar, this.command, this.activity, this.logger].forEach(s => s?.deinit());
+        [this.bar, this.command, this.activity, this.logger, this.panel].forEach(s => s?.deinit());
         console.info('Deactivated psql-runner');
     }
 }
-
-
-
-
 
 const extension = new Extension();
 

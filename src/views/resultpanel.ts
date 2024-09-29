@@ -1,35 +1,31 @@
+import * as vscode from 'vscode';
+import { QueryResult } from 'pg';
+import { BaseResultPanel } from './base/panel';
 
-// FIXME: show lines after clearing filters
-export function tableResult(columns: Array<string>, rows: Array<Array<string>>) {
-    return `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Simple HTML Table</title>
-            <style>
-                table {
-                    width: 100%;
-                    border: none;
-                    border-collapse: collapse;
-                }
-                th, td {
-                    border: 1px solid #ddd;
-                    text-align: left;
-                    padding: 8px;
-                }
-                th { background-color: #82457c; color: white; }
-                input {
-                    background-color: inherit;
-                    color: white;
-                    border: none;
-                    border-bottom: 2px solid white;
-                    box-shadow: none;
-                }
-            </style>
-        </head>
-        <body>
+export class ResultPanel extends BaseResultPanel {
+    constructor(ctx: vscode.ExtensionContext) { super(ctx, 'Result', 'result-view'); }
+
+    protected override onMessage(msg: Message): void {
+        switch (msg.command) {
+            case 'alert':
+                vscode.window.showErrorMessage(msg.text);
+                return;
+        }
+    };
+
+    private rowsFromResult(columns: string[], result: QueryResult<any>) { return result.rows.map(v => columns.map(h => `${v[h]}`)); }
+    private columnsFromResult(result: QueryResult<any>) { return result.fields.map(field => field.name); }
+
+    public update(result: QueryResult<any>) {
+        const cols = this.columnsFromResult(result);
+        const rows = this.rowsFromResult(cols, result);
+
+        this.showTableResult(cols, rows);
+    }
+
+    // FIXME: show lines after clearing filters
+    private showTableResult(columns: Array<string>, rows: Array<Array<string>>) {
+        const template = `
             <h1>SQL Results</h1>
 
             <table id="dataTable">
@@ -69,6 +65,9 @@ export function tableResult(columns: Array<string>, rows: Array<Array<string>>) 
                         })`)}
                 });
             </script>
-        </body>
         `.trim();
+
+        const html = this.render(template);
+        this.show(html);
+    }
 }

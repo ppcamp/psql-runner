@@ -4,28 +4,28 @@ import { Pool, PoolConfig, QueryResult } from 'pg';
 import { QueryParser } from '../utils/sql';
 import { stringify } from '../utils/stringfy';
 import Logger from './base/logging';
-import { tableResult } from '../view/result';
-import Prompts from '../view/prompts';
+import Prompts from '../views/prompts';
+import { ResultPanel } from '../views/resultpanel';
 
 export class DatabaseManager extends Base {
     private static KeyConnections = 'psql-runner:connections';
     private static KeyCounter = 'psql-runner:counter';
-
     private secrets: vscode.SecretStorage;
 
+    private resultPanel: ResultPanel;
     private counter: number = 1;
     private current?: Pool;
     private connections: PoolConfig[] = [];
 
-    constructor(ctx: vscode.ExtensionContext, log: Logger) {
+    constructor(ctx: vscode.ExtensionContext, log: Logger, panel: ResultPanel) {
         super(ctx, log);
         // Fetch the current connection from the settings
         // const config = vscode.workspace.getConfiguration('psql-runner');
         // const conn = config.get('currentConnection') as string;
         this.secrets = ctx.secrets;
         this.load();
+        this.resultPanel = panel;
     }
-
 
     private save() {
         this.log.info('[db] Saving connection information');
@@ -79,7 +79,6 @@ export class DatabaseManager extends Base {
         }
     }
 
-
     public async createConnection() {
 
         let name = await Prompts.Name();
@@ -95,7 +94,6 @@ export class DatabaseManager extends Base {
         }
 
         const database = await Prompts.Database();
-
 
         const user = await Prompts.User();
         if (!user) {
@@ -173,7 +171,6 @@ export class DatabaseManager extends Base {
         return name;
     }
 
-
     public async remove(name: string) {
         this.connections = this.connections.filter(v => v.application_name !== name);
         this.save();
@@ -181,12 +178,10 @@ export class DatabaseManager extends Base {
         this.log.info(`[db] Removed connection ${this.name}`);
     }
 
-
     public get name() { return this.current?.options.application_name ?? ''; }
     public get available() { return this.connections.map(connection => connection.application_name!); }
     // TODO close the current connection
     public close() { }
-
 
     public async runQuery(text: string) {
         this.log.debug('[db] Parsing query', { text });
@@ -208,28 +203,8 @@ export class DatabaseManager extends Base {
         //     result!.rows = result!.rows.slice(0, 100);
         // }
 
-        const columns = columnsFromResult(result!);
-        const rows = rowsFromResult(columns, result!);
-
-        // TODO: NEXT STEPS: use
-        const panel = vscode.window.createWebviewPanel(
-            'psql.results', // Identifies the type of the webview. Used internally
-            'SQL Results', // Title of the panel displayed to the user
-            { viewColumn: vscode.ViewColumn.One, preserveFocus: true }, // Editor column to show the new webview panel in
-            { enableScripts: true, enableForms: true } // Webview options
-        );
-        // Set the HTML content for the webview
-        panel.webview.html = tableResult(columns, rows);
-        panel.reveal();
+        this.resultPanel.update(result!);
     }
-}
-
-function rowsFromResult(columns: string[], result: QueryResult<any>) {
-    return result.rows.map(v => columns.map(h => `${v[h]}`));
-}
-
-function columnsFromResult(result: QueryResult<any>) {
-    return result.fields.map(field => field.name);
 }
 
 function errorDetail(err: Error): string {
