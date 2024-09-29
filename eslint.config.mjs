@@ -20,6 +20,7 @@ export default [{
             format: ["camelCase", "PascalCase"],
         }],
 
+        "no-multiple-empty-lines": ["error", { "max": 1 }],
         curly: "warn",
         eqeqeq: "warn",
         "no-throw-literal": "warn",
